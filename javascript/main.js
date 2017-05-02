@@ -55,6 +55,9 @@ var BoxProp = function(pars){
     return this;  
 };
 
+
+
+
 function Wheel(pars){
     /*
     wheel object 
@@ -121,13 +124,30 @@ Wheel.prototype.getLocalVelocity=function(){
     return [res.x, res.y];
 };
 
-Wheel.prototype.getDirectionVector=function(){
+Wheel.prototype.getDirectionVector= function() {
     /*
     returns a world unit vector pointing in the direction this wheel is moving
     */
-    return vectors.rotate((this.getLocalVelocity()[1]>0) ? [0, 1]:[0, -1] , this.body.GetAngle()) ;
+    return vectors.rotate((this.getLocalVelocity()[1]>0) ? [0, 1]:[0, -1] , this.body.GetAngle());
 };
 
+Wheel.prototype.slideFactor = function(){
+    var MinCorrection = 0.1;
+    var MaxCorrection = 0.8;
+    var maxSlideSpeed = 50;
+    return Math.max(MinCorrection, Math.min(MaxCorrection, 
+        Math.abs(this.car.getSpeedKMH()) / maxSlideSpeed * (MaxCorrection - MinCorrection) + MinCorrection));
+};
+
+Wheel.prototype.getSlidingVelocity = function() {
+    // let us slide a bit shall we
+    var velocity = this.body.GetLinearVelocity();
+    var slideCoef  = this.slideFactor();
+    var kv = this.getKillVelocityVector();
+
+    return [ slideCoef * velocity.x + (1 - slideCoef) * kv[0],
+        slideCoef * velocity.y + (1 - slideCoef) * kv[1]]; 
+};
 
 Wheel.prototype.getKillVelocityVector=function(){
     /*
@@ -139,13 +159,12 @@ Wheel.prototype.getKillVelocityVector=function(){
     return [sideways_axis[0]*dotprod, sideways_axis[1]*dotprod];
 };
 
-Wheel.prototype.killSidewaysVelocity=function(){
+Wheel.prototype.calculateVelocity=function(){
     /*
-    removes all sideways velocity from this wheels velocity
+    removes some sideways velocity from this wheels velocity
     */
-    var kv=this.getKillVelocityVector();
-    this.body.SetLinearVelocity(new box2d.b2Vec2(kv[0], kv[1]));
-
+    var slideVelocity = this.getSlidingVelocity();
+    this.body.SetLinearVelocity(new box2d.b2Vec2(slideVelocity[0], slideVelocity[1]));
 };
 
 
@@ -256,12 +275,11 @@ Car.prototype.setSpeed=function(speed){
 
 Car.prototype.update=function(msDuration){
     
-        //1. KILL SIDEWAYS VELOCITY
-        
-        //kill sideways velocity for all wheels
+        //1. STIFLE SIDEWAYS VELOCITY 
+
         var i;
         for(i=0;i<this.wheels.length;i++){
-            this.wheels[i].killSidewaysVelocity();
+             this.wheels[i].calculateVelocity();  
         }
     
         //2. SET WHEEL ANGLE
