@@ -1,3 +1,9 @@
+An experiment to see how to implement "drifting" on a 2D Car.  
+Original Readme included below.
+
+
+-------------------------------------------------------------------------
+
 This is a simple as I could make it example of a HTML5 top-down car game using gamejs javascript game framework and box2d physics engine.
 
 Live example at: http://domasx2.github.com/gamejs-box2d-car-example
